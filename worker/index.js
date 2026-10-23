@@ -103,17 +103,13 @@ export default {
       );
     }
 
-    const consulta = dados && dados.lookup;
+    // A documentação fala em { lookup: {...} }, mas a API devolve os campos na raiz.
+    // Aceita os dois formatos.
+    const consulta = dados && (dados.lookup || dados);
 
     if (!consulta || consulta.status !== 'completed') {
       return responder(
-        {
-          erro: 'servico_indisponivel',
-          codigo: 'status_' + (consulta && consulta.status),
-          // Só os nomes dos campos recebidos, para diagnóstico. Nunca os valores.
-          campos: dados && typeof dados === 'object' ? Object.keys(dados) : null,
-          campos_lookup: consulta && typeof consulta === 'object' ? Object.keys(consulta) : null,
-        },
+        { erro: 'servico_indisponivel', codigo: 'status_' + (consulta && consulta.status) },
         502,
         cors
       );
