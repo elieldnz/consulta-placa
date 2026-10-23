@@ -1,0 +1,9 @@
+name = "consulta-placa-api"
+main = "index.js"
+compatibility_date = "2026-10-01"
+
+[vars]
+# Páginas autorizadas a chamar este servidor (separe várias por vírgula).
+ALLOWED_ORIGINS = "https://elieldnz.github.io"
+
+# A chave da API NÃO vai aqui. Guarde com:  npx wrangler secret put CDP_API_KEY
