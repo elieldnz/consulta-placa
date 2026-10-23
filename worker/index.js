@@ -107,7 +107,13 @@ export default {
 
     if (!consulta || consulta.status !== 'completed') {
       return responder(
-        { erro: 'servico_indisponivel', codigo: 'status_' + (consulta && consulta.status) },
+        {
+          erro: 'servico_indisponivel',
+          codigo: 'status_' + (consulta && consulta.status),
+          // Só os nomes dos campos recebidos, para diagnóstico. Nunca os valores.
+          campos: dados && typeof dados === 'object' ? Object.keys(dados) : null,
+          campos_lookup: consulta && typeof consulta === 'object' ? Object.keys(consulta) : null,
+        },
         502,
         cors
       );
