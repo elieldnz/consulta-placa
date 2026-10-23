@@ -1,7 +1,7 @@
-// Servidor intermediário (Cloudflare Worker) entre a página e a APIBrasil ("API Placa Dados").
-// Os tokens da APIBrasil ficam guardados aqui, nunca na página.
+// Servidor intermediário (Cloudflare Worker) entre a página e a API Consulta de Placa.
+// A chave da API fica guardada aqui, nunca na página.
 
-const API_URL = 'https://gateway.apibrasil.io/api/v2/vehicles/dados';
+const API_URL = 'https://consultadeplaca.net/api/v1/lookups';
 const FORMATO_PLACA = /^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/;
 
 function responder(corpo, status, cabecalhos) {
@@ -14,58 +14,8 @@ function responder(corpo, status, cabecalhos) {
   });
 }
 
-// "Ano_Modelo", "anoModelo" e "ANOMODELO" viram "anomodelo".
-function normalizar(chave) {
-  return String(chave).toLowerCase().normalize('NFD').replace(/[^a-z]/g, '');
-}
-
-// A documentação pública da APIBrasil não mostra o formato da resposta.
-// Por isso a leitura procura os campos em qualquer nível do JSON, ignorando
-// maiúsculas, acentos e separadores. Confira com uma resposta real (veja o README).
-function procurar(objeto, nomes) {
-  const fila = [{ valor: objeto, nivel: 0 }];
-  while (fila.length) {
-    const atual = fila.shift();
-    const v = atual.valor;
-    if (!v || typeof v !== 'object' || atual.nivel > 4) continue;
-    const chaves = Object.keys(v);
-    for (let n = 0; n < nomes.length; n++) {
-      for (let i = 0; i < chaves.length; i++) {
-        if (normalizar(chaves[i]) !== nomes[n]) continue;
-        const achado = v[chaves[i]];
-        if (achado !== null && achado !== undefined && achado !== '' && typeof achado !== 'object') {
-          return achado;
-        }
-      }
-    }
-    for (let i = 0; i < chaves.length; i++) {
-      if (v[chaves[i]] && typeof v[chaves[i]] === 'object') {
-        fila.push({ valor: v[chaves[i]], nivel: atual.nivel + 1 });
-      }
-    }
-  }
-  return null;
-}
-
-function mapear(dados, placa) {
-  const marca = procurar(dados, ['marca', 'brand']);
-  let modelo = procurar(dados, ['modelo', 'model']);
-  const marcaModelo = procurar(dados, ['marcamodelo']);
-  if (!modelo && marcaModelo) modelo = marcaModelo;
-
-  if (!marca && !modelo) return null;
-
-  return {
-    placa: procurar(dados, ['placa', 'plate']) || placa,
-    marca: marca,
-    modelo: modelo,
-    ano: procurar(dados, ['anomodelo', 'ano', 'anofabricacao', 'year']),
-    cor: procurar(dados, ['cor', 'color']),
-    combustivel: procurar(dados, ['combustivel', 'fuel']),
-    uf: procurar(dados, ['uf', 'estado', 'state']),
-    cidade: procurar(dados, ['municipio', 'cidade', 'city']),
-    situacao: procurar(dados, ['situacao', 'situacaodoveiculo']),
-  };
+function valor(v) {
+  return v === undefined || v === null || v === '' ? null : v;
 }
 
 export default {
@@ -97,8 +47,8 @@ export default {
       return responder({ erro: 'metodo_nao_permitido' }, 405, cors);
     }
 
-    if (!env.APIBRASIL_DEVICE_TOKEN || !env.APIBRASIL_BEARER_TOKEN) {
-      console.error('Tokens da APIBrasil não configurados');
+    if (!env.CDP_API_KEY) {
+      console.error('CDP_API_KEY não configurada');
       return responder({ erro: 'servico_indisponivel' }, 502, cors);
     }
 
@@ -116,15 +66,15 @@ export default {
       resposta = await fetch(API_URL, {
         method: 'POST',
         headers: {
+          'Authorization': 'Bearer ' + env.CDP_API_KEY,
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'DeviceToken': env.APIBRASIL_DEVICE_TOKEN,
-          'Authorization': 'Bearer ' + env.APIBRASIL_BEARER_TOKEN,
+          'Idempotency-Key': crypto.randomUUID(),
         },
-        body: JSON.stringify({ placa: placa }),
+        body: JSON.stringify({ plate: placa }),
       });
     } catch (e) {
-      console.error('Falha de rede ao chamar a APIBrasil');
+      console.error('Falha de rede ao chamar a API de placas');
       return responder({ erro: 'servico_indisponivel' }, 502, cors);
     }
 
@@ -136,26 +86,46 @@ export default {
     }
 
     if (!resposta.ok) {
-      // Registra só o status e os nomes dos campos, nunca os tokens nem os valores.
+      // Registra o código e o identificador da requisição, nunca a chave.
       console.error(
-        'APIBrasil respondeu ' + resposta.status +
-        ' campos=' + (dados && typeof dados === 'object' ? Object.keys(dados).join(',') : 'nenhum')
+        'API de placas respondeu ' + resposta.status +
+        ' code=' + (dados && dados.code) +
+        ' request_id=' + (dados && dados.request_id)
       );
       if (resposta.status === 429) return responder({ erro: 'muitas_consultas' }, 429, cors);
-      if (resposta.status === 404) return responder({ erro: 'nao_encontrada' }, 404, cors);
+      if (resposta.status === 422) return responder({ erro: 'placa_invalida' }, 400, cors);
       return responder({ erro: 'servico_indisponivel' }, 502, cors);
     }
 
-    const veiculo = mapear(dados, placa);
+    const consulta = dados && dados.lookup;
 
-    if (!veiculo) {
-      console.error(
-        'Resposta da APIBrasil sem marca/modelo. campos=' +
-        (dados && typeof dados === 'object' ? Object.keys(dados).join(',') : 'nenhum')
-      );
+    if (!consulta || consulta.status !== 'completed') {
+      return responder({ erro: 'servico_indisponivel' }, 502, cors);
+    }
+
+    if (consulta.result !== 'found' || !consulta.vehicle) {
       return responder({ erro: 'nao_encontrada' }, 404, cors);
     }
 
-    return responder(veiculo, 200, cors);
+    const v = consulta.vehicle;
+    let situacao = null;
+    if (v.theft === true) situacao = 'Com registro de roubo ou furto';
+    if (v.theft === false) situacao = 'Sem registro de roubo ou furto';
+
+    return responder(
+      {
+        placa: valor(v.plate) || placa,
+        marca: valor(v.brand),
+        modelo: valor(v.model),
+        ano: valor(v.model_year) || valor(v.manufacture_year),
+        cor: valor(v.color),
+        combustivel: valor(v.fuel),
+        uf: valor(v.state),
+        cidade: valor(v.city),
+        situacao: situacao,
+      },
+      200,
+      cors
+    );
   },
 };
