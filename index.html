@@ -44,10 +44,58 @@
       );
     }
 
+    /* ---------- Herói com estrada ---------- */
+    :root { --sobra: clamp(56px, 12vw, 96px); }
+
+    .hero {
+      position: relative;
+      isolation: isolate;
+      overflow: hidden;
+      background: var(--asfalto);
+      color: var(--placa);
+      padding: clamp(32px, 7vw, 64px) 0 calc(var(--sobra) + 44px);
+    }
+
+    /* Faixas da pista: linha tracejada em movimento e linha contínua amarela. */
+    .hero::before {
+      content: "";
+      position: absolute;
+      z-index: -2;
+      left: -120px;
+      right: 0;
+      bottom: calc(var(--sobra) + 19px);
+      height: 6px;
+      background: repeating-linear-gradient(
+        90deg,
+        rgba(247, 247, 244, 0.7) 0 64px,
+        transparent 64px 120px
+      );
+      animation: pista 1.4s linear infinite;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      z-index: -1;
+      inset: 0;
+      background:
+        linear-gradient(180deg, rgba(43, 49, 56, 0.9) 0%, rgba(43, 49, 56, 0.72) 55%, rgba(43, 49, 56, 0.55) 100%),
+        linear-gradient(0deg, var(--amarelo) 0 6px, transparent 6px);
+    }
+
+    @keyframes pista {
+      to { transform: translateX(120px); }
+    }
+
+    .hero-in {
+      width: min(100% - 32px, 760px);
+      margin: 0 auto;
+    }
+
     main {
       width: min(100% - 32px, 760px);
       margin: 0 auto;
-      padding: clamp(32px, 7vw, 72px) 0 64px;
+      padding: 0 0 64px;
     }
 
     h1 {
@@ -60,13 +108,18 @@
     }
 
     .intro {
-      margin: 0 0 clamp(24px, 5vw, 40px);
+      margin: 0;
       max-width: 46ch;
       font-size: 1.0625rem;
+      color: rgba(247, 247, 244, 0.92);
     }
 
     /* ---------- A placa ---------- */
-    form { margin: 0; }
+    form {
+      position: relative;
+      z-index: 1;
+      margin: calc(var(--sobra) * -1) 0 0;
+    }
 
     .placa {
       --fundo: var(--placa);
@@ -283,10 +336,14 @@
 <body>
   <div class="faixa" aria-hidden="true"></div>
 
-  <main>
-    <h1>Consulta de placa</h1>
-    <p class="intro">Digite a placa do veículo para ver modelo, ano, cidade e situação.</p>
+  <header class="hero">
+    <div class="hero-in">
+      <h1>Consulta de placa</h1>
+      <p class="intro">Digite a placa do veículo para ver modelo, ano, cidade e situação.</p>
+    </div>
+  </header>
 
+  <main>
     <form id="form" novalidate>
       <label class="placa estampa" id="placa-visual" for="placa">
         <span class="topo" aria-hidden="true">
