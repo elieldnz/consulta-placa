@@ -49,7 +49,7 @@ export default {
 
     if (!env.CDP_API_KEY) {
       console.error('CDP_API_KEY não configurada');
-      return responder({ erro: 'servico_indisponivel' }, 502, cors);
+      return responder({ erro: 'servico_indisponivel', codigo: 'chave_nao_configurada' }, 502, cors);
     }
 
     const url = new URL(request.url);
@@ -75,7 +75,7 @@ export default {
       });
     } catch (e) {
       console.error('Falha de rede ao chamar a API de placas');
-      return responder({ erro: 'servico_indisponivel' }, 502, cors);
+      return responder({ erro: 'servico_indisponivel', codigo: 'falha_de_rede' }, 502, cors);
     }
 
     let dados = null;
@@ -94,13 +94,23 @@ export default {
       );
       if (resposta.status === 429) return responder({ erro: 'muitas_consultas' }, 429, cors);
       if (resposta.status === 422) return responder({ erro: 'placa_invalida' }, 400, cors);
-      return responder({ erro: 'servico_indisponivel' }, 502, cors);
+      // O código do erro (ex.: invalid_api_key, region_not_allowed) não é sigiloso
+      // e ajuda a diagnosticar problemas.
+      return responder(
+        { erro: 'servico_indisponivel', codigo: (dados && dados.code) || 'http_' + resposta.status },
+        502,
+        cors
+      );
     }
 
     const consulta = dados && dados.lookup;
 
     if (!consulta || consulta.status !== 'completed') {
-      return responder({ erro: 'servico_indisponivel' }, 502, cors);
+      return responder(
+        { erro: 'servico_indisponivel', codigo: 'status_' + (consulta && consulta.status) },
+        502,
+        cors
+      );
     }
 
     if (consulta.result !== 'found' || !consulta.vehicle) {
