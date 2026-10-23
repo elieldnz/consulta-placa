@@ -2,6 +2,12 @@ name = "consulta-placa-api"
 main = "index.js"
 compatibility_date = "2026-10-01"
 
+workers_dev = true
+
+# Registros do Worker (Observability), usados para diagnosticar erros da consulta.
+[observability]
+enabled = true
+
 [vars]
 # Páginas autorizadas a chamar este servidor (separe várias por vírgula).
 ALLOWED_ORIGINS = "https://elieldnz.github.io"
