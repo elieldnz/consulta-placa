@@ -2,71 +2,440 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Consulta de Placa</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Consulta de Placa</title>
+  <meta name="description" content="Digite a placa e veja modelo, ano, cidade e situação do veículo.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Schibsted+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
+    :root {
+      --asfalto: #2B3138;
+      --concreto: #D9DCDB;
+      --placa: #F7F7F4;
+      --placa-antiga: #BDC1C2;
+      --azul: #1F3F9E;
+      --amarelo: #F5C400;
+      --erro: #A3262A;
+      --display: "Big Shoulders Display", "Arial Narrow", Impact, sans-serif;
+      --texto: "Schibsted Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { -webkit-text-size-adjust: 100%; }
+
     body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-      background-color: #f0f0f0;
+      margin: 0;
+      min-height: 100vh;
+      background: var(--concreto);
+      color: var(--asfalto);
+      font-family: var(--texto);
+      font-size: 1rem;
+      line-height: 1.5;
     }
-    .container {
-      background: #fff;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-      max-width: 500px;
-      margin: auto;
+
+    .faixa {
+      height: 14px;
+      background: repeating-linear-gradient(
+        -45deg,
+        var(--amarelo) 0 22px,
+        var(--asfalto) 22px 44px
+      );
     }
-    input, button {
+
+    main {
+      width: min(100% - 32px, 760px);
+      margin: 0 auto;
+      padding: clamp(32px, 7vw, 72px) 0 64px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-family: var(--display);
+      font-weight: 900;
+      font-size: clamp(2.5rem, 9vw, 4.5rem);
+      line-height: 0.95;
+      letter-spacing: 0.01em;
+    }
+
+    .intro {
+      margin: 0 0 clamp(24px, 5vw, 40px);
+      max-width: 46ch;
+      font-size: 1.0625rem;
+    }
+
+    /* ---------- A placa ---------- */
+    form { margin: 0; }
+
+    .placa {
+      --fundo: var(--placa);
+      --letra: var(--asfalto);
+      --topo: var(--azul);
+      --topo-letra: #fff;
+      position: relative;
+      display: block;
       width: 100%;
-      padding: 10px;
-      margin-top: 10px;
-      font-size: 16px;
+      aspect-ratio: 400 / 130;
+      min-height: 112px;
+      background: var(--fundo);
+      border: 4px solid var(--asfalto);
+      border-radius: 12px;
+      box-shadow:
+        inset 0 0 0 3px var(--fundo),
+        inset 0 0 0 4px rgba(43, 49, 56, 0.35),
+        0 14px 0 -4px rgba(43, 49, 56, 0.18);
+      overflow: hidden;
+      cursor: text;
+      transition: background-color 0.25s ease;
     }
-    .resultado {
-      margin-top: 20px;
-      background: #e8f5e9;
-      padding: 10px;
-      border-radius: 6px;
+
+    .placa.antiga {
+      --fundo: var(--placa-antiga);
+      --topo: var(--asfalto);
+      --topo-letra: var(--placa-antiga);
+    }
+
+    .placa .topo {
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 24%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 5%;
+      background: var(--topo);
+      color: var(--topo-letra);
+      font-family: var(--display);
+      font-weight: 700;
+      font-size: clamp(0.8rem, 3.2vw, 1.35rem);
+      letter-spacing: 0.32em;
+      pointer-events: none;
+      transition: background-color 0.25s ease, color 0.25s ease;
+    }
+
+    .placa .topo .mercosul { letter-spacing: 0.08em; }
+
+    .placa input {
+      position: absolute;
+      inset: 24% 0 0 0;
+      width: 100%;
+      height: 76%;
+      margin: 0;
+      padding: 0 4%;
+      border: 0;
+      background: transparent;
+      color: var(--letra);
+      font-family: var(--display);
+      font-weight: 900;
+      font-size: clamp(3.4rem, 17vw, 8.6rem);
+      line-height: 1;
+      letter-spacing: 0.06em;
+      text-align: center;
+      text-transform: uppercase;
+      caret-color: var(--azul);
+      outline: none;
+    }
+
+    .placa input::placeholder {
+      color: rgba(43, 49, 56, 0.22);
+    }
+
+    .placa:focus-within {
+      outline: 4px solid var(--azul);
+      outline-offset: 4px;
+    }
+
+    .placa.estampa { animation: estampar 0.55s cubic-bezier(0.2, 0.9, 0.25, 1.15) both; }
+
+    @keyframes estampar {
+      0%   { transform: translateY(-28px) scale(1.04); opacity: 0; }
+      60%  { transform: translateY(3px) scale(0.995); opacity: 1; }
+      100% { transform: none; opacity: 1; }
+    }
+
+    /* ---------- Ação ---------- */
+    .acoes {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 16px;
+      margin-top: 32px;
+    }
+
+    button {
+      min-height: 52px;
+      padding: 0 32px;
+      border: 3px solid var(--asfalto);
+      border-radius: 8px;
+      background: var(--amarelo);
+      color: var(--asfalto);
+      font-family: var(--display);
+      font-weight: 900;
+      font-size: 1.5rem;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+      box-shadow: 0 5px 0 var(--asfalto);
+    }
+
+    button:hover { transform: translateY(1px); box-shadow: 0 4px 0 var(--asfalto); }
+    button:active { transform: translateY(5px); box-shadow: 0 0 0 var(--asfalto); }
+    button:focus-visible { outline: 4px solid var(--azul); outline-offset: 4px; }
+    button[disabled] { opacity: 0.6; cursor: progress; }
+
+    .dica { margin: 0; font-size: 0.9375rem; max-width: 36ch; }
+
+    /* ---------- Resultado ---------- */
+    .resultado { margin-top: 40px; }
+
+    .resultado:empty { display: none; }
+
+    .aviso {
+      margin: 0;
+      padding: 16px 18px;
+      border-left: 8px solid var(--asfalto);
+      background: var(--placa);
+      font-weight: 500;
+    }
+
+    .aviso.erro { border-left-color: var(--erro); }
+
+    .ficha {
+      margin: 0;
+      background: var(--placa);
+      border: 3px solid var(--asfalto);
+      border-radius: 10px;
+      overflow: hidden;
+      animation: abrir 0.4s ease both;
+    }
+
+    .ficha .cabeca {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 20px;
+      background: var(--asfalto);
+      color: var(--placa);
+    }
+
+    .ficha .cabeca strong {
+      font-family: var(--display);
+      font-weight: 900;
+      font-size: 2rem;
+      letter-spacing: 0.08em;
+      line-height: 1;
+    }
+
+    .ficha .cabeca span { font-size: 0.9375rem; opacity: 0.85; }
+
+    .ficha dl {
+      display: grid;
+      grid-template-columns: max-content 1fr;
+      margin: 0;
+    }
+
+    .ficha dt,
+    .ficha dd {
+      margin: 0;
+      padding: 14px 20px;
+      border-top: 1px solid rgba(43, 49, 56, 0.18);
+    }
+
+    .ficha dt:first-of-type,
+    .ficha dt:first-of-type + dd { border-top: 0; }
+
+    .ficha dt { font-weight: 500; padding-right: 32px; }
+    .ficha dd { font-weight: 700; overflow-wrap: anywhere; }
+
+    @keyframes abrir {
+      from { opacity: 0; clip-path: inset(0 0 100% 0); }
+      to   { opacity: 1; clip-path: inset(0 0 0 0); }
+    }
+
+    .vh {
+      position: absolute;
+      width: 1px; height: 1px;
+      margin: -1px; padding: 0;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    @media (max-width: 420px) {
+      .ficha dl { grid-template-columns: 1fr; }
+      .ficha dt { padding: 12px 20px 0; border-top: 1px solid rgba(43, 49, 56, 0.18); }
+      .ficha dd { padding: 2px 20px 12px; border-top: 0; }
+      .ficha dt:first-of-type { border-top: 0; }
+      button { width: 100%; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation: none !important;
+        transition: none !important;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h2>Consulta de Veículo por Placa</h2>
-    <input type="text" id="placa" placeholder="Digite a placa (ex: ABC1234)">
-    <button onclick="consultarPlaca()">Consultar</button>
-    <div id="resultado" class="resultado"></div>
-  </div>
+  <div class="faixa" aria-hidden="true"></div>
+
+  <main>
+    <h1>Consulta de placa</h1>
+    <p class="intro">Digite a placa do veículo para ver modelo, ano, cidade e situação.</p>
+
+    <form id="form" novalidate>
+      <label class="placa estampa" id="placa-visual" for="placa">
+        <span class="topo" aria-hidden="true">
+          <span class="mercosul">MERCOSUL</span>
+          <span>BRASIL</span>
+        </span>
+        <span class="vh">Placa do veículo</span>
+        <input
+          id="placa"
+          name="placa"
+          type="text"
+          maxlength="7"
+          placeholder="ABC1D23"
+          autocomplete="off"
+          autocapitalize="characters"
+          autocorrect="off"
+          spellcheck="false"
+          inputmode="text"
+          aria-describedby="dica"
+        >
+      </label>
+
+      <div class="acoes">
+        <button type="submit" id="consultar">Consultar</button>
+        <p class="dica" id="dica">Aceita placas no padrão Mercosul (ABC1D23) e no padrão antigo (ABC1234).</p>
+      </div>
+    </form>
+
+    <div class="resultado" id="resultado" role="status" aria-live="polite"></div>
+  </main>
 
   <script>
-    function consultarPlaca() {
-      const placa = document.getElementById('placa').value.toUpperCase();
-      const url = `https://apicarros.com/v1/consulta/${placa}/json`;
+    (function () {
+      var form = document.getElementById('form');
+      var input = document.getElementById('placa');
+      var visual = document.getElementById('placa-visual');
+      var botao = document.getElementById('consultar');
+      var resultado = document.getElementById('resultado');
+      var mercosul = visual.querySelector('.mercosul');
 
-      document.getElementById('resultado').innerText = 'Consultando...';
+      var FORMATO = /^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/;
 
-      fetch(url)
-        .then(res => res.json())
-        .then(data => {
-          if (data.erro) {
-            document.getElementById('resultado').innerText = 'Placa não encontrada ou erro na consulta.';
-          } else {
-            document.getElementById('resultado').innerHTML = `
-              <strong>Placa:</strong> ${data.placa}<br>
-              <strong>Modelo:</strong> ${data.modelo}<br>
-              <strong>Ano:</strong> ${data.ano}<br>
-              <strong>UF:</strong> ${data.uf}<br>
-              <strong>Cidade:</strong> ${data.cidade}<br>
-              <strong>Situação:</strong> ${data.situacao}
-            `;
-          }
-        })
-        .catch(() => {
-          document.getElementById('resultado').innerText = 'Erro ao consultar a API.';
+      function limpar(valor) {
+        return valor.toUpperCase().replace(/[^A-Z0-9]/g, '');
+      }
+
+      // A placa muda de estilo conforme o formato digitado:
+      // quinto caractere letra = Mercosul (faixa azul); número = padrão antigo.
+      function atualizarEstilo() {
+        var quinto = input.value.charAt(4);
+        var antiga = /[0-9]/.test(quinto);
+        visual.classList.toggle('antiga', antiga);
+        mercosul.hidden = antiga;
+      }
+
+      input.addEventListener('input', function () {
+        input.value = limpar(input.value);
+        atualizarEstilo();
+      });
+
+      visual.addEventListener('animationend', function () {
+        visual.classList.remove('estampa');
+      });
+
+      function mostrarAviso(texto, erro) {
+        resultado.textContent = '';
+        var p = document.createElement('p');
+        p.className = 'aviso' + (erro ? ' erro' : '');
+        p.textContent = texto;
+        resultado.appendChild(p);
+      }
+
+      function valor(v) {
+        return (v === undefined || v === null || v === '') ? 'Não informado' : String(v);
+      }
+
+      function mostrarFicha(d) {
+        resultado.textContent = '';
+
+        var ficha = document.createElement('article');
+        ficha.className = 'ficha';
+
+        var cabeca = document.createElement('div');
+        cabeca.className = 'cabeca';
+        var placa = document.createElement('strong');
+        placa.textContent = valor(d.placa);
+        var modelo = document.createElement('span');
+        modelo.textContent = valor(d.modelo);
+        cabeca.appendChild(placa);
+        cabeca.appendChild(modelo);
+
+        var lista = document.createElement('dl');
+        [
+          ['Modelo', d.modelo],
+          ['Ano', d.ano],
+          ['UF', d.uf],
+          ['Cidade', d.cidade],
+          ['Situação', d.situacao]
+        ].forEach(function (par) {
+          var dt = document.createElement('dt');
+          dt.textContent = par[0];
+          var dd = document.createElement('dd');
+          dd.textContent = valor(par[1]);
+          lista.appendChild(dt);
+          lista.appendChild(dd);
         });
-    }
+
+        ficha.appendChild(cabeca);
+        ficha.appendChild(lista);
+        resultado.appendChild(ficha);
+      }
+
+      form.addEventListener('submit', function (evento) {
+        evento.preventDefault();
+
+        var placa = limpar(input.value);
+        input.value = placa;
+        atualizarEstilo();
+
+        if (!FORMATO.test(placa)) {
+          mostrarAviso('Placa incompleta. Use 3 letras seguidas de 4 caracteres, como ABC1D23 ou ABC1234.', true);
+          input.focus();
+          return;
+        }
+
+        botao.disabled = true;
+        botao.textContent = 'Consultando';
+        mostrarAviso('Consultando a placa ' + placa + '...', false);
+
+        fetch('https://apicarros.com/v1/consulta/' + encodeURIComponent(placa) + '/json')
+          .then(function (res) { return res.json(); })
+          .then(function (dados) {
+            if (!dados || dados.erro) {
+              mostrarAviso('Não encontramos a placa ' + placa + '. Confira os caracteres e tente de novo.', true);
+            } else {
+              mostrarFicha(dados);
+            }
+          })
+          .catch(function () {
+            mostrarAviso('Não foi possível acessar o serviço de consulta. Verifique sua conexão e tente de novo.', true);
+          })
+          .then(function () {
+            botao.disabled = false;
+            botao.textContent = 'Consultar';
+          });
+      });
+
+      atualizarEstilo();
+    })();
   </script>
 </body>
 </html>
